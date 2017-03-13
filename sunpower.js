@@ -37,6 +37,11 @@ function sunpower(config) {
 
     var request = require('request');
     var https = require('https');
+
+    const mysql = require('./mysql');
+
+    let db;
+
     var keepAliveAgent = new https.Agent({ keepAlive: true });
 /*
     require('request').debug = true
@@ -227,6 +232,17 @@ function sunpower(config) {
                             timestamp : new Date( device.SystemList[0].DateTimeReceived )
                         };
 
+                        db.insert('sunpower_samples',
+                            {
+                                id: id,
+                                sample_ts: new Date(),
+                                generating: current.generating,
+                                timestamp: current.timestamp
+                            })
+                            .catch( (err) => {
+                                console.error(err);
+                            });
+
                         statusCache.set(id, current);
                     }
 
@@ -261,7 +277,24 @@ function sunpower(config) {
     function loadSystem(){
         return new Promise( ( fulfill, reject ) => {
 
-            call( api.system )
+            mysql.connect(config.db)
+                .then((connection) => {
+                    return connection.useDatabase('sentinel');
+                })
+                .then((schema) => {
+                    db = schema;
+
+                    return db.query('CREATE TABLE IF NOT EXISTS sunpower_samples \
+                                    ( \
+                                        sample_ts    DATETIME PRIMARY KEY NOT NULL, \
+                                        generating   FLOAT ,  \
+                                        timestamp    DATETIME, \
+                                        id           VARCHAR(60) \
+                                    );');
+                })
+                .then(() => {
+                    return call( api.system )
+                })
                 .then( (data) => {
 
                     let results = Array.isArray(data.Payload) ? data.Payload : [data.Payload];
