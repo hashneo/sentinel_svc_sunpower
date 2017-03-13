@@ -10,7 +10,7 @@ spec:
     protocol: TCP
     targetPort: 5000
   selector:
-    app: nest
+    app: sunpower
     context: sentinel-services
     version: v1
 ---
@@ -23,13 +23,13 @@ spec:
   template:
     metadata:
       labels:
-        app: nest
+        app: sunpower
         context: sentinel-services
         version: v1
     spec:
       containers:
         -
-          name: sentinel-nest
+          name: sentinel-sunpower
           image: docker.steventaylor.me/sentinel-sunpower-x86_64:latest
           imagePullPolicy: IfNotPresent
           env:
