@@ -24,8 +24,8 @@ let getProductionBy = {};
 
 getProductionBy['now'] = (id, start, res) => {
 
-    let ts1 = moment(start).add(1, 'd').format('YYYY-MM-DD');
-    let ts2 = moment(start).format('YYYY-MM-DD');
+    let ts1 = moment(start).format('YYYY-MM-DD');
+    let ts2 = moment(start).add(1, 'd').format('YYYY-MM-DD');
 
     let q = `
     select 
@@ -33,7 +33,7 @@ getProductionBy['now'] = (id, start, res) => {
         avg(generating) as kwh 
     from 
         sentinel.sunpower_samples 
-    where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp < '${ts2} 00:00:00' 
+    where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
     group by hour`;
 
     global.module.getData(q)
@@ -51,18 +51,14 @@ getProductionBy['day'] = (id, start, res) => {
     let ts2 = moment(start).add(1, 'd').format('YYYY-MM-DD');
 
     let q = `
-    select left( t1.d, 10) as date,
-           sum(t1.kwh) as kwh
-    from (
-        select 
-            DATE_FORMAT(timestamp, "%Y-%m-%d %H") as d, 
-            avg(generating) as kwh 
-        from 
-            sentinel.sunpower_samples 
-        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp < '${ts2} 00:00:00' 
-        group by d
-    ) as t1
-    group by date`;
+    select 
+        DATE_FORMAT(timestamp, "%H") as hour, 
+        avg(generating) as kwh 
+    from 
+        sentinel.sunpower_samples 
+    where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
+    group by hour`;
+
 
     global.module.getData(q)
         .then( (data) => {
@@ -87,7 +83,7 @@ getProductionBy['week'] = (id, start, res) => {
             avg(generating) as kwh 
         from 
             sentinel.sunpower_samples 
-        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp < '${ts2} 00:00:00' 
+        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
         group by d
     ) as t1
     group by date`;
@@ -116,7 +112,7 @@ getProductionBy['month'] = (id, start, res) => {
             avg(generating) as kwh 
         from 
             sentinel.sunpower_samples 
-        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp < '${ts2} 00:00:00' 
+        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59' 
         group by d
     ) as t1
     group by date`;
@@ -145,7 +141,7 @@ getProductionBy['year'] = (id, start, res) => {
             avg(generating) as kwh 
         from 
             sentinel.sunpower_samples 
-        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp < '${ts2} 00:00:00' 
+        where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
         group by d
     ) as t1
     group by date`;
