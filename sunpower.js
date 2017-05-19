@@ -213,6 +213,23 @@ function sunpower(config) {
 
     };
 
+    this.getData = (q) => {
+        return new Promise( (fulfill, reject) => {
+            try {
+                db.query(q)
+                    .then( (rows,fields) => {
+                        fulfill(rows);
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        reject(err);
+                    });
+            }catch(err){
+                reject(err);
+            }
+        });
+    };
+
     function updateStatus() {
         return new Promise( ( fulfill, reject ) => {
 
