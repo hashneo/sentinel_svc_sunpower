@@ -301,13 +301,16 @@ function sunpower(config) {
                 .then((schema) => {
                     db = schema;
 
-                    return db.query('CREATE TABLE IF NOT EXISTS sunpower_samples \
-                                    ( \
-                                        sample_ts    DATETIME PRIMARY KEY NOT NULL, \
-                                        generating   FLOAT ,  \
-                                        timestamp    DATETIME, \
-                                        id           VARCHAR(60) \
-                                    );');
+                    return db.query(`
+                    CREATE TABLE IF NOT EXISTS sunpower_samples
+                    (
+                        sample_ts    DATETIME PRIMARY KEY NOT NULL,
+                        generating   FLOAT,
+                        timestamp    DATETIME,
+                        id           VARCHAR(60),
+                        UNIQUE INDEX idx_timestamp (timestamp)
+                    );
+                    `);
                 })
                 .then(() => {
                     return call( api.system )
