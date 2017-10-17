@@ -18,11 +18,6 @@ function sunpower(config) {
         }
     );
 
-    pub.on('ready', function(e){
-        let data = JSON.stringify( { module: 'sunpower', service: { name: 'sentinel-sunpower', port: 5050 } });
-        pub.publish( 'sentinel.plugin.start', data);
-    });
-
     pub.on('end', function(e){
         console.log('Redis hung up, committing suicide');
         process.exit(1);
