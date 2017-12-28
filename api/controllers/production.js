@@ -32,7 +32,7 @@ getProductionBy['now'] = (id, start, res) => {
         DATE_FORMAT(timestamp, "%H") as hour, 
         avg(generating) as kwh 
     from 
-        sentinel.sunpower_samples 
+        ${global.schema}.sunpower_samples 
     where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
     group by hour`;
 
@@ -55,7 +55,7 @@ getProductionBy['day'] = (id, start, res) => {
         DATE_FORMAT(timestamp, "%H") as hour, 
         avg(generating) as kwh 
     from 
-        sentinel.sunpower_samples 
+        ${global.schema}.sunpower_samples 
     where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
     group by hour`;
 
@@ -82,7 +82,7 @@ getProductionBy['week'] = (id, start, res) => {
             DATE_FORMAT(timestamp, "%Y-%m-%d %H") as d, 
             avg(generating) as kwh 
         from 
-            sentinel.sunpower_samples 
+            ${global.schema}.sunpower_samples 
         where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
         group by d
     ) as t1
@@ -111,7 +111,7 @@ getProductionBy['month'] = (id, start, res) => {
             DATE_FORMAT(timestamp, "%Y-%m-%d %H") as d, 
             avg(generating) as kwh 
         from 
-            sentinel.sunpower_samples 
+            ${global.schema}.sunpower_samples 
         where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59' 
         group by d
     ) as t1
@@ -140,7 +140,7 @@ getProductionBy['year'] = (id, start, res) => {
             DATE_FORMAT(timestamp, "%Y-%m-%d %H") as d, 
             avg(generating) as kwh 
         from 
-            sentinel.sunpower_samples 
+            ${global.schema}.sunpower_samples 
         where id = ${id} and timestamp >= '${ts1} 00:00:00' and timestamp <= '${ts2} 23:59:59'
         group by d
     ) as t1

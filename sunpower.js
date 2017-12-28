@@ -289,9 +289,11 @@ function sunpower(config) {
     function loadSystem(){
         return new Promise( ( fulfill, reject ) => {
 
+            global.schema = config.db.schema ||'sentinel';
+
             mysql.connect(config.db)
                 .then((connection) => {
-                    return connection.useDatabase('sentinel');
+                    return connection.useDatabase(global.schema);
                 })
                 .then((schema) => {
                     db = schema;
