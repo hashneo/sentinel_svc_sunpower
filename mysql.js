@@ -28,7 +28,7 @@ function mysql(){
                 if(err)
                     return reject(err);
                 connection = c;
-                console.log("mysql => We are connected");
+                console.log('mysql => We are connected');
                 fulfill(this);
             });
 
@@ -47,6 +47,8 @@ function mysql(){
 
 
     this.useDatabase = (name) => {
+
+        console.log(`using schema ${name}`);
 
         return new Promise( (fulfill, reject ) => {
             connection.query(`use ${name};`, (err) => {
