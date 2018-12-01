@@ -57,7 +57,7 @@ function sunpower(config) {
 
     statusCache.on( 'set', function( key, value ){
         let data = JSON.stringify( { module: 'sunpower', id : key, value : value });
-        console.log( 'sentinel.device.update => ' + data );
+        //console.log( 'sentinel.device.update => ' + data );
         pub.publish( 'sentinel.device.update', data);
     });
 
