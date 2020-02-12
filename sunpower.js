@@ -63,22 +63,86 @@ function sunpower(config) {
 
 	var that = this;
 
-    let server = 'monitor.us.sunpower.com';
+    let server = 'elhapi.edp.sunpower.com';
 
     var api = {
-            "login" : "/CustomerPortal/Auth/Auth.svc/Authenticate",
-            "system" : "/CustomerPortal/SiteInfo/SiteInfo.svc/GetSiteInfo?id={token}",
-            "current" : "/CustomerPortal/CurrentPower/CurrentPower.svc/GetCurrentPower?id={token}"
+            "login" : "/v1/elh/authenticate",
+            "system" : "/v1/elh/address/{addressId}",
+            "current" : "/v1/elh/address/{addressId}/energy/minute?async=false&endepm={endDate}&startepm={startDate}"
         };
 
-    let token = '0000';
+    let userId;
+    let addressId;
+
+    let token;
+
+    function login(){
+
+        return new Promise( (fulfill, reject) =>{
+
+            call( api.login, 'post',  { 'username': config.username, 'password': config.password, 'isPersistent': false }, 'application/json' )
+                .then( (result) => {
+
+                    if ( result.tokenID ){
+                        token = result.tokenID;
+                        userId = result.userId;
+                        addressId = result.addressId;
+                        fulfill(token);
+                    }
+
+                    reject( new Error( 'Unable to login') );
+
+                })
+                .catch( (err) =>{
+                    reject(err);
+                });
+
+        });
+    }
 
     function call(url, method, data, type){
 
         return new Promise( (fulfill, reject) => {
 
-            let options = {
-                url : 'https://' + server + url.replace('{token}', token),
+            if ( url !== api.login ) {
+                if (userId === undefined) {
+
+                    login()
+                        .then(() => {
+                            call(url, method, data)
+                                .then((result) => {
+                                    fulfill(result);
+                                })
+                                .catch((err) => {
+                                    reject(err);
+                                });
+                        })
+                        .catch((err) => {
+                            reject(err);
+                        });
+
+                    return;
+                }
+            }
+
+            url = url.replace('{userId}', userId);
+            url = url.replace('{addressId}', addressId);
+
+            let now = new Date();
+            let day = now.getDate();
+            let month = now.getMonth();
+            let year = now.getFullYear();
+
+            let epoch = new Date(year, month, day, 0, 0 ,0).getTime();
+
+            let startDate = epoch;
+            let endDate = startDate + (24*60*60*1000);
+
+            url = url.replace('{startDate}', startDate);
+            url = url.replace('{endDate}', endDate);
+
+            let  options = {
+                url : 'https://' + server + url,
                 method : method,
                 encoding : null,
                 headers : {
@@ -89,6 +153,10 @@ function sunpower(config) {
                 agent : keepAliveAgent,
                 followRedirect: false
             };
+
+            if ( token !== undefined ){
+                options['headers']['Authorization'] = 'SP-CUSTOM ' + token;
+            }
 
             if ( data === undefined )
                 data = null;
@@ -108,27 +176,20 @@ function sunpower(config) {
 
                 request(options, (err, response, body) => {
 
-                    if (!err && response.statusCode == 200) {
-                        let result = JSON.parse(body);
+                    if (err){
+                        return reject(err);
+                    }
 
-                        if ( result.StatusCode == '202' &&  result.ResponseMessage === 'Unauthorized User' ){
+                    switch (response.statusCode ) {
+                        case 200:
+                            let result = JSON.parse(body);
 
-                            if ( url ===  api.login ){
-                                reject( new Error( 'Invalid Authorization') );
-                                return;
-                            }
+                            fulfill(result);
+                            return;
+                        case 403:
 
-                            call( api.login, 'post',  { 'username': config.username, 'password': config.password, 'isPersistent': false }, 'application/json' )
-                                .then( (result) => {
-
-                                    if ( result.StatusCode === '200' ){
-                                        if ( result.Payload.TokenID ){
-                                            token = result.Payload.TokenID;
-                                        }else{
-                                            reject( new Error( 'Unable to login') );
-                                        }
-                                    }
-
+                            login()
+                                .then(() => {
                                     call(url, method, data)
                                         .then((result) => {
                                             fulfill(result);
@@ -137,18 +198,17 @@ function sunpower(config) {
                                             reject(err);
                                         });
                                 })
-                                .catch( (err) =>{
+                                .catch((err) => {
                                     reject(err);
                                 });
 
                             return;
-                        }
-
-                        fulfill(result);
-                    } else {
-                        console.error(err||body);
-                        reject(err||body);
                     }
+
+                    console.error(body);
+
+                    reject(body);
+
                 });
             }catch(e){
                 console.error(err);
@@ -275,14 +335,14 @@ function sunpower(config) {
 
     function processDevice( d ){
         var device = { 'system' : {}, 'current' : {} };
-        device['name'] = d.AddressName;
-        device['id'] = d.AddressID;
+        device['name'] = d.OwnerName;
+        device['id'] = d.id;
         device['type'] = 'power.generator.solar';
-        device['system']['installed'] = new Date( d.commissioningDate );
+        device['system']['installed'] = new Date( d.CommissioningDate );
         device['system']['timestamp'] = new Date( d.SiteDateTime );
         device['system']['size'] = {};
-        device['system']['size']['actual'] = d.systemSizeActual;
-        device['system']['size']['provisioned'] = parseFloat( d.systemSizeValue );
+        device['system']['size']['actual'] = d.SystemSizeKw * d.SystemSizeMultiplier;
+        device['system']['size']['provisioned'] = parseFloat( d.SystemSizeKw );
         return device;
     }
 
@@ -314,7 +374,7 @@ function sunpower(config) {
                 })
                 .then( (data) => {
 
-                    let results = Array.isArray(data.Payload) ? data.Payload : [data.Payload];
+                    let results = Array.isArray(data) ? data : [data];
 
                     let devices = [];
 
